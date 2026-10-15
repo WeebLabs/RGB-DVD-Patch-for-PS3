@@ -4,10 +4,10 @@ A PS3 plugin that keeps RGB output on the AV MULTI port during DVD and
 Blu-ray playback in the PS3's own (XMB) disc player.
 
 Without it, the PS3 switches AV MULTI from RGB to component video (YPbPr)
-whenever a DVD or Blu-ray starts. On a SCART RGB display, such as a Sony PVM or an RGB
-SCART TV, the picture then turns green and purple. With the plugin, the
-picture stays RGB, with correct colours for both the movie and the
-on-screen menus.
+whenever a DVD or Blu-ray starts. On a SCART RGB display, such as a Sony
+PVM or an RGB SCART TV, the picture then turns green and purple. With the
+plugin, the picture stays RGB, with correct colours for both the movie and
+the on-screen menus.
 
 Feel free to join the [official Discord server](https://discord.gg/RCyqxAQ5xS)
 for development updates, discussion or to request assistance!
