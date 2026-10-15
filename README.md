@@ -1,24 +1,21 @@
 # RGB DVD Patch for PS3
 
-A PS3 plugin that keeps RGB output on the AV MULTI port during DVD and
-Blu-ray playback in the PS3's own (XMB) disc player.
+A PS3 VSH plugin that retains RGB output on the AV MULTI port during DVD and
+Blu-ray playback using the PS3's native player.
 
 Without it, the PS3 switches AV MULTI from RGB to component video (YPbPr)
-whenever a DVD or Blu-ray starts. On a SCART RGB display, such as a Sony
-PVM or an RGB SCART TV, the picture then turns green and purple. With the
-plugin, the picture stays RGB, with correct colours for both the movie and
-the on-screen menus.
+whenever playback of a DVD or Blu-ray begins. On a SCART RGB display, the picture becomes 
+green and purple. With this plugin, the output remains RGB, with correct 
+colours for both the content itself and the on-screen menus.
 
 Feel free to join the [official Discord server](https://discord.gg/RCyqxAQ5xS)
 for development updates, discussion or to request assistance!
 
 ## Requirements
 
-- A PS3 on **firmware 4.92 CEX** with custom firmware that includes
-  **Cobra** (tested with Evilnat 4.92 and Cobra 8.5).
-- Video output set to **AV MULTI / SCART, RGB**. Tested at 576i (PAL);
-  480i (NTSC) has not been tested.
-- A way to copy files to the PS3's hard drive, such as webMAN MOD's FTP
+- A PS3 running **Evilnat 4.92 CEX and Cobra 8.5**.
+- Video output set to **AV MULTI / SCART, RGB**.
+- A means of transferring files to the PS3's hard drive, such as webMAN MOD's FTP
   server or a file manager like multiMAN.
 
 The plugin checks the exact 4.92 system code before changing anything. On
@@ -41,16 +38,16 @@ affected.
 
 4. Reboot the PS3.
 
-The plugin installs its hook 5 seconds after it loads at boot. Nothing
+The plugin installs its hook 5 seconds after being loaded at boot. Nothing
 changes in the XMB itself; only disc playback behaves differently.
 
 ## Checking that it works
 
-Play a DVD or Blu-ray. The picture should stay RGB.
+Play a DVD or Blu-ray. The picture should remain RGB.
 
 The plugin writes a log to `/dev_hdd0/tmp/disc_rgb_fix.log`. After a DVD
-or Blu-ray starts, it should contain the lines below. The log says
-"DVD-start" for Blu-ray too; the correction is the same.
+or Blu-ray begins, it should contain the lines below. The log reports
+"DVD-start" for both Blu-ray and DVD; the correction is the same.
 
 ```text
 READY: DVD-start AV MULTI batch will be kept RGB
