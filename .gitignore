@@ -1,0 +1,11 @@
+# Never commit the Sony SDK, firmware, keys, or anything built with the SDK.
+cell_sdk/
+fresh_492_analysis/
+*.self
+*.elf
+*.o
+*.prx
+*.sprx
+build/
+__pycache__/
+.DS_Store

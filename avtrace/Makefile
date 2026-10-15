@@ -1,0 +1,43 @@
+CELL_SDK ?= /opt/cell
+CELL_HOST_PATH ?= $(CELL_SDK)/host-win32
+CELL_TARGET_PATH ?= $(CELL_SDK)/target/ppu
+WINE ?= wine
+CC := $(WINE) $(CELL_HOST_PATH)/ppu/bin/ppu-lv2-gcc.exe
+OBJDUMP := $(WINE) $(CELL_HOST_PATH)/ppu/bin/ppu-lv2-objdump.exe
+FSELF := $(WINE) $(CELL_HOST_PATH)/bin/make_fself.exe
+
+TARGET := avtrace
+C_SOURCES := source/avtrace.c
+ASM_SOURCES := source/avtrace_hooks.S
+OBJECTS := $(C_SOURCES:.c=.o) $(ASM_SOURCES:.S=.o)
+
+CFLAGS := -O2 -Wall -Wextra -std=gnu99
+CFLAGS += -fno-exceptions -fno-builtin-printf
+CFLAGS += -I$(CELL_TARGET_PATH)/include
+
+LDFLAGS := -mprx-with-runtime
+LDFLAGS += -L$(CELL_TARGET_PATH)/lib
+LDLIBS := -lfs_stub -llv2_stub -lc
+
+.PHONY: all clean disasm
+
+all: $(TARGET).sprx disasm
+
+source/%.o: source/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+source/%.o: source/%.S
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(TARGET).prx: $(OBJECTS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+$(TARGET).sprx: $(TARGET).prx
+	$(FSELF) $< $@
+
+disasm: source/avtrace_hooks.o
+	mkdir -p build
+	$(OBJDUMP) -d source/avtrace_hooks.o > build/avtrace_hooks.disasm.txt
+
+clean:
+	rm -f $(OBJECTS) $(TARGET).prx $(TARGET).sprx build/avtrace_hooks.disasm.txt
