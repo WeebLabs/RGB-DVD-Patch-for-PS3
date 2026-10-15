@@ -1,0 +1,34 @@
+disc_rgb_fix 2.0 starting
+DISABLED: disc_rgb_fix.disable is present; nothing installed
+disc_rgb_fix 2.0 starting
+CHECK: disable marker absent
+WAIT: letting the XMB finish starting
+INFO: observer 0x00B30400
+INFO: send hook 0x00B21528
+STEP: checking 4.92 VSH send wrapper bytes
+CHECK: send wrapper matches
+STEP: writing observer address into hook code
+CHECK: hook code prepared
+STEP: writing send branch 0x485427D4
+READY: DVD-start AV MULTI batch will be kept RGB
+REWRITE: DVD-start batch kept RGB; total 0x00000001
+REWRITE: send result (0x74 = accepted) 0x00000074
+disc_rgb_fix 2.0.1 starting
+DISABLED: disc_rgb_fix.disable is present; nothing installed
+disc_rgb_fix 2.0.1 starting
+CHECK: disable marker absent
+WAIT: letting the XMB finish starting
+INFO: observer 0x00DC0400
+INFO: send hook 0x00B51524
+STEP: checking 4.92 VSH send wrapper bytes
+CHECK: send wrapper matches
+STEP: writing observer address into hook code
+CHECK: hook code prepared
+STEP: writing send branch 0x485727D0
+READY: DVD-start AV MULTI batch will be kept RGB
+REWRITE: DVD-start batch kept RGB; total 0x00000001
+REWRITE: send result (0x74 = accepted) 0x00000074
+REWRITE: DVD-start batch kept RGB; total 0x00000002
+REWRITE: send result (0x74 = accepted) 0x00000074
+REWRITE: DVD-start batch kept RGB; total 0x00000003
+REWRITE: send result (0x74 = accepted) 0x00000074

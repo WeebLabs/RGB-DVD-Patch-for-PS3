@@ -59,6 +59,11 @@ Results (captures 0003 and 0004):
 - In about 28 minutes of playback, including opening the overlay, no
   further `VIDEO_MODE` or `AV_VIDEO_CS` command was sent.
 - Leaving playback returns to the XMB normally.
+- Blu-ray (test 0005): native Blu-ray playback also stays RGB. The plugin
+  corrected the batch at playback start and the AV controller accepted it
+  (`0x74`). The plugin only corrects a batch that exactly matches the one
+  described above, so Blu-ray playback sends the same batch. It was not
+  captured separately with avtrace.
 
 ## Safety measures
 

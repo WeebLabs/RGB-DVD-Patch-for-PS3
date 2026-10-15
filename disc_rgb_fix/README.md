@@ -1,7 +1,7 @@
 # disc_rgb_fix 2.0.1
 
 A VSH plugin that keeps a PS3's AV MULTI output electrically RGB during
-native XMB DVD playback, so a SCART RGB display (such as a PVM) keeps a
+native XMB DVD and Blu-ray playback, so a SCART RGB display (such as a PVM) keeps a
 correct picture instead of receiving component video.
 
 Tested on: CECH-L04, 4.92 CEX, Evilnat CFW with Cobra 8.5, webMAN MOD
@@ -38,7 +38,8 @@ The plugin waits 5 seconds after it loads before installing its hook.
 
 ## Log and disable switch
 
-- Log: `/dev_hdd0/tmp/disc_rgb_fix.log`. Each corrected DVD start logs a
+- Log: `/dev_hdd0/tmp/disc_rgb_fix.log`. Each corrected DVD or Blu-ray
+  start logs a
   `REWRITE` line with the send result (`0x74` means the AV controller
   accepted the 116-byte batch).
 - Disable without uninstalling: create `/dev_hdd0/tmp/disc_rgb_fix.disable`

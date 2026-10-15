@@ -1,10 +1,10 @@
 # RGB DVD Patch for PS3
 
-A PS3 plugin that keeps RGB output on the AV MULTI port during DVD playback
-in the PS3's own (XMB) disc player.
+A PS3 plugin that keeps RGB output on the AV MULTI port during DVD and
+Blu-ray playback in the PS3's own (XMB) disc player.
 
 Without it, the PS3 switches AV MULTI from RGB to component video (YPbPr)
-whenever a DVD starts. On a SCART RGB display, such as a Sony PVM or an RGB
+whenever a DVD or Blu-ray starts. On a SCART RGB display, such as a Sony PVM or an RGB
 SCART TV, the picture then turns green and purple. With the plugin, the
 picture stays RGB, with correct colours for both the movie and the
 on-screen menus.
@@ -42,14 +42,15 @@ affected.
 4. Reboot the PS3.
 
 The plugin installs its hook 5 seconds after it loads at boot. Nothing
-changes in the XMB itself; only DVD playback behaves differently.
+changes in the XMB itself; only disc playback behaves differently.
 
 ## Checking that it works
 
-Play a DVD. The picture should stay RGB.
+Play a DVD or Blu-ray. The picture should stay RGB.
 
 The plugin writes a log to `/dev_hdd0/tmp/disc_rgb_fix.log`. After a DVD
-starts, it should contain:
+or Blu-ray starts, it should contain the lines below. The log says
+"DVD-start" for Blu-ray too; the correction is the same.
 
 ```text
 READY: DVD-start AV MULTI batch will be kept RGB
@@ -89,7 +90,7 @@ distributed here. See [disc_rgb_fix/README.md](disc_rgb_fix/README.md).
 ## More detail
 
 - [docs/how-it-works.md](docs/how-it-works.md) explains what the PS3
-  changes when a DVD starts, and what the plugin does about it.
+  changes when a disc starts, and what the plugin does about it.
 - [avtrace](avtrace/) is the diagnostic plugin used to find the cause. It
   records the commands the system sends to the PS3's video hardware.
 - [logs](logs/) holds the captures and test results the fix is based on.
