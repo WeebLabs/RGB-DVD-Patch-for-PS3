@@ -9,6 +9,9 @@ SCART TV, the picture then turns green and purple. With the plugin, the
 picture stays RGB, with correct colours for both the movie and the
 on-screen menus.
 
+Feel free to join the [official Discord server](https://discord.gg/RCyqxAQ5xS)
+for development updates, discussion or to request assistance!
+
 ## Requirements
 
 - A PS3 on **firmware 4.92 CEX** with custom firmware that includes
