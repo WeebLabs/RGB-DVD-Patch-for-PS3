@@ -10,7 +10,7 @@
 #include <sys/timer.h>
 
 /*
- * disc_rgb_fix 2.0.1
+ * disc_rgb_fix 2.1.3
  *
  * Keeps AV MULTI electrically RGB during native DVD playback on 4.92 CEX
  * (Evilnat / Cobra 8.5), by correcting one PS3AV batch just before VSH
@@ -22,24 +22,41 @@
  * signal.  The send hook (rgbfix_hook.S) sets exactly that batch back to the
  * XMB RGB bytes.  Nothing else is changed.
  *
+ * 2.1.0 also reports every output-mode batch VSH sends (VIDEO_MODE with
+ * AV_VIDEO_CS, read after the correction) and shows the new mode as an XMB
+ * notification, for example "576i RGB", once the output has settled.
+ * Since 2.1.3 the notification is skipped when the mode (port, resolution,
+ * colour space) is the one shown or skipped last, and when no mode has been
+ * seen yet and the batch was a DVD-start correction: the player starts in
+ * the system's current mode (captures 0002, 0007), so that is no change.
+ *
  * Boot-safety rules:
  *   - module start only creates one thread;
  *   - the thread checks the disable marker first;
  *   - it waits START_DELAY_SECONDS before touching VSH;
- *   - afterwards it only checks its own counter once a second;
+ *   - afterwards it only checks its own counters every 100 ms;
  *   - every risky step is logged before and after.
  */
 
-SYS_MODULE_INFO(disc_rgb_fix, 0, 2, 1);
+/* Version bytes: major 2, then minor and patch as nibbles (2.0.1 was 0x01). */
+SYS_MODULE_INFO(disc_rgb_fix, 0, 2, 0x13);
 SYS_MODULE_START(disc_rgb_fix_start);
 SYS_MODULE_STOP(disc_rgb_fix_stop);
 
-#define BUILD_START_LINE          "disc_rgb_fix 2.0.1 starting"
+#define BUILD_START_LINE          "disc_rgb_fix 2.1.3 starting"
 
 #define LOG_PATH                  "/dev_hdd0/tmp/disc_rgb_fix.log"
 #define DISABLE_MARKER_PATH       "/dev_hdd0/tmp/disc_rgb_fix.disable"
+#define NO_POPUP_MARKER_PATH      "/dev_hdd0/tmp/disc_rgb_fix.nopopup"
 
 #define START_DELAY_SECONDS       5u
+#define POLL_USECONDS             100000u
+/*
+ * Wait for 5 s without changes.  On leaving DVD playback, a pop-up sent 1 s
+ * (2.1.0) or 3 s (2.1.1) after the mode switch was not shown on hardware,
+ * although vshtask_notify returned 0.
+ */
+#define POPUP_SETTLE_POLLS        50u
 
 #define WORKER_PRIORITY           3000
 #define WORKER_STACK_SIZE         0x2000
@@ -52,17 +69,42 @@ SYS_MODULE_STOP(disc_rgb_fix_stop);
 #define PS3MAPI_OPCODE_SET_PROC_MEM       0x0032u
 #define SYSCALL_DBG_WRITE_PROCESS_MEMORY  905u
 
+#define AV_PORT_AVMULTI           0x10u
+
 typedef struct FixObserver {
 	volatile uint32_t in_flight;
 	volatile uint32_t rewrites;
 	volatile uint32_t last_result;
-	volatile uint32_t pad[5];
+	volatile uint32_t mode_sets;
+	volatile uint32_t mode_vid;
+	volatile uint32_t av_port;
+	volatile uint32_t av_vid;
+	volatile uint32_t cs_out;
 } FixObserver;
 
 /* The assembly hard-codes these offsets. */
 typedef char check_observer_layout[
 	(offsetof(FixObserver, rewrites) == 4 &&
-	 offsetof(FixObserver, last_result) == 8) ? 1 : -1];
+	 offsetof(FixObserver, last_result) == 8 &&
+	 offsetof(FixObserver, mode_sets) == 12 &&
+	 offsetof(FixObserver, mode_vid) == 16 &&
+	 offsetof(FixObserver, av_port) == 20 &&
+	 offsetof(FixObserver, av_vid) == 24 &&
+	 offsetof(FixObserver, cs_out) == 28) ? 1 : -1];
+
+/* AV_VIDEO_CS av_vid, as in avtrace/tools/decode_avtrace.py AV_VID. */
+static const char *const g_av_vid_names[] = {
+	"480i", "480p", "720p60", "1080i60", "1080p60", "576i",
+	"576p", "720p50", "1080i50", "1080p50", "WXGA", "SXGA", "WUXGA"
+};
+
+/* AV_VIDEO_CS av_cs_out 0..2 (RGB8, YUV444_8, YUV422_8). */
+static const char *const g_cs_names[] = {
+	"RGB", "YCbCr 4:4:4", "YCbCr 4:2:2"
+};
+
+/* vshtask_notify(): XMB notification, see webMAN MOD vsh/vshtask.h. */
+extern int32_t vshtask_A02D46E7(int32_t arg, const char *message);
 
 /* Exactly the 4.92 send wrapper, 0x005DED54 to 0x005DEDA4. */
 static const uint32_t g_send_signature[] = {
@@ -148,6 +190,71 @@ static void log_hex32(const char *prefix, uint32_t value)
 	}
 	line[prefix_length + 8] = '\0';
 	log_line(line);
+}
+
+typedef struct TextBuffer {
+	char text[128];
+	size_t length;
+} TextBuffer;
+
+static void text_add(TextBuffer *buffer, const char *part)
+{
+	size_t length = strlen(part);
+
+	if (length > sizeof(buffer->text) - 1 - buffer->length) {
+		length = sizeof(buffer->text) - 1 - buffer->length;
+	}
+	memcpy(buffer->text + buffer->length, part, length);
+	buffer->length += length;
+	buffer->text[buffer->length] = '\0';
+}
+
+static void text_add_hex(TextBuffer *buffer, uint32_t value)
+{
+	static const char digits[] = "0123456789ABCDEF";
+	char hex[11];
+	int shift = 28;
+	size_t i = 2;
+
+	hex[0] = '0';
+	hex[1] = 'x';
+	while (shift > 0 && ((value >> shift) & 0x0Fu) == 0) {
+		shift -= 4;
+	}
+	for (; shift >= 0; shift -= 4) {
+		hex[i++] = digits[(value >> shift) & 0x0Fu];
+	}
+	hex[i] = '\0';
+	text_add(buffer, hex);
+}
+
+/* Pop-up text for an output mode, for example "576i RGB". */
+static void describe_mode(TextBuffer *buffer, uint32_t port, uint32_t vid,
+	                      uint32_t cs_out)
+{
+	buffer->length = 0;
+	buffer->text[0] = '\0';
+
+	if (vid < sizeof(g_av_vid_names) / sizeof(g_av_vid_names[0])) {
+		text_add(buffer, g_av_vid_names[vid]);
+	} else {
+		text_add(buffer, "mode ");
+		text_add_hex(buffer, vid);
+	}
+	text_add(buffer, " ");
+	if (cs_out < sizeof(g_cs_names) / sizeof(g_cs_names[0])) {
+		text_add(buffer, g_cs_names[cs_out]);
+	} else {
+		text_add(buffer, "colour space ");
+		text_add_hex(buffer, cs_out);
+	}
+	if (port == 0x00u || port == 0x01u) {
+		text_add(buffer, " (HDMI)");
+	} else if (port != AV_PORT_AVMULTI) {
+		text_add(buffer, " (port ");
+		text_add_hex(buffer, port);
+		text_add(buffer, ")");
+	}
 }
 
 static int ps3mapi_write_memory(uint32_t pid, uint32_t address,
@@ -284,6 +391,7 @@ static int install_hook(void)
 	}
 	g_send_branch = branch;
 	log_line("READY: DVD-start AV MULTI batch will be kept RGB");
+	log_line("READY: output-mode changes are reported");
 	return 0;
 }
 
@@ -305,6 +413,19 @@ static void worker_thread(uint64_t argument)
 {
 	uint32_t waited;
 	uint32_t logged_rewrites = 0;
+	uint32_t logged_modes = 0;
+	uint32_t settle_polls = 0;
+	uint32_t pending_port = 0;
+	uint32_t pending_vid = 0;
+	uint32_t pending_cs = 0;
+	uint32_t known_port = 0;
+	uint32_t known_vid = 0;
+	uint32_t known_cs = 0;
+	int known_mode = 0;
+	uint32_t decided_rewrites = 0;
+	int popups = 1;
+	TextBuffer mode_text;
+	TextBuffer line;
 
 	(void)argument;
 	log_line(BUILD_START_LINE);
@@ -314,6 +435,12 @@ static void worker_thread(uint64_t argument)
 		sys_ppu_thread_exit(0);
 	}
 	log_line("CHECK: disable marker absent");
+	if (file_exists(NO_POPUP_MARKER_PATH)) {
+		popups = 0;
+		log_line("CHECK: disc_rgb_fix.nopopup present; modes are logged, not shown");
+	}
+	mode_text.length = 0;
+	mode_text.text[0] = '\0';
 	log_line("WAIT: letting the XMB finish starting");
 
 	for (waited = 0; waited < START_DELAY_SECONDS && !g_stop_requested;
@@ -334,8 +461,9 @@ static void worker_thread(uint64_t argument)
 
 	while (!g_stop_requested) {
 		uint32_t rewrites;
+		uint32_t modes;
 
-		sys_timer_sleep(1);
+		sys_timer_usleep(POLL_USECONDS);
 		memory_barrier();
 		rewrites = g_observer.rewrites;
 		if (rewrites != logged_rewrites) {
@@ -343,6 +471,67 @@ static void worker_thread(uint64_t argument)
 			log_hex32("REWRITE: send result (0x74 = accepted) ",
 			          g_observer.last_result);
 			logged_rewrites = rewrites;
+		}
+
+		/* The hook writes the mode fields before it bumps mode_sets. */
+		modes = g_observer.mode_sets;
+		memory_barrier();
+		if (modes != logged_modes) {
+			uint32_t mode_vid = g_observer.mode_vid;
+			uint32_t port = g_observer.av_port;
+			uint32_t vid = g_observer.av_vid;
+			uint32_t cs_out = g_observer.cs_out;
+
+			describe_mode(&mode_text, port, vid, cs_out);
+			line.length = 0;
+			text_add(&line, "MODE: ");
+			text_add(&line, mode_text.text);
+			text_add(&line, "; video_vid ");
+			text_add_hex(&line, mode_vid);
+			text_add(&line, " port ");
+			text_add_hex(&line, port);
+			text_add(&line, " av_vid ");
+			text_add_hex(&line, vid);
+			text_add(&line, " cs_out ");
+			text_add_hex(&line, cs_out);
+			text_add(&line, " total ");
+			text_add_hex(&line, modes);
+			log_line(line.text);
+			logged_modes = modes;
+			pending_port = port;
+			pending_vid = vid;
+			pending_cs = cs_out;
+			settle_polls = POPUP_SETTLE_POLLS;
+		} else if (settle_polls != 0 && --settle_polls == 0) {
+			/* rewrites only grows, and the hook bumps it before mode_sets. */
+			int corrected = rewrites != decided_rewrites;
+			int unchanged = known_mode &&
+			                pending_port == known_port &&
+			                pending_vid == known_vid &&
+			                pending_cs == known_cs;
+
+			line.length = 0;
+			text_add(&line, "POPUP: ");
+			text_add(&line, mode_text.text);
+			if (unchanged) {
+				text_add(&line, "; skipped, same mode as before");
+			} else if (!known_mode && corrected) {
+				text_add(&line, "; skipped, DVD start in the current mode");
+			} else if (!popups) {
+				text_add(&line, "; not shown, nopopup marker");
+			} else {
+				int32_t result = vshtask_A02D46E7(0, mode_text.text);
+
+				text_add(&line, "; vshtask_notify returned ");
+				text_add_hex(&line, (uint32_t)result);
+			}
+			log_line(line.text);
+
+			known_mode = 1;
+			known_port = pending_port;
+			known_vid = pending_vid;
+			known_cs = pending_cs;
+			decided_rewrites = rewrites;
 		}
 	}
 

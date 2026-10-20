@@ -40,6 +40,17 @@ so the AV MULTI port carries component video. No further `VIDEO_MODE` or
 `AV_VIDEO_CS` command is sent during playback. Leaving playback sends the
 XMB RGB batch again.
 
+### PAL disc on a 480i system (capture 0007)
+
+With the system set to 480i, VSH starts playback of a PAL DVD with the
+DVD-start batch at 480i (720x480, batch #21). About 7.5 seconds later, once
+the player has read the disc, it mutes the output and sends a complete new
+setup at 576i (720x576, #67), in the same DVD-start form. Leaving playback
+sends the XMB batch at 480i again (#213). So the player switches the output
+to the disc's standard, even though the XMB does not offer 576i on that
+system. When disc and system already match (capture 0002), there is only
+the one batch at the start.
+
 ## What the plugin does
 
 `disc_rgb_fix` replaces the send wrapper with an identical copy that checks
@@ -65,6 +76,29 @@ Results (captures 0003 and 0004):
   described above, so Blu-ray playback sends the same batch. It was not
   captured separately with avtrace.
 
+## Output-mode pop-up (2.1)
+
+Every output-mode change in the captures is one batch with the same
+layout: `AVB_PARAM` with one `VIDEO_MODE` at `+0x10` and one `AV_VIDEO_CS`
+at `+0x40`, and no audio packets. After the RGB correction, the hook checks
+each batch for that layout and copies four fields into the plugin's
+memory: `VIDEO_MODE.video_vid` (`+0x20`), and the `AV_VIDEO_CS` port,
+`av_vid` and `av_cs_out` (`+0x48`, `+0x4A`, `+0x4C`). It then increments a
+counter. It never changes the batch. The correction and send code are the
+2.0.1 code.
+
+The plugin's own thread checks the counter every 100 ms and logs each
+change. Once the output has gone 5 seconds without a further change, it
+shows the mode with `vshtask_notify` (module `vshtask`, NID `0xA02D46E7`),
+the XMB notification webMAN MOD also uses. It skips the pop-up when the
+mode equals the last one, and when no mode is known yet and the change was
+a DVD-start correction. The plugin starts watching after the XMB has set
+its mode, so the first DVD start has nothing to compare with.
+
+On the console (test 0008), pop-ups sent 1 or 3 seconds after leaving
+disc playback were not drawn, although `vshtask_notify` returned 0. Pop-ups
+sent after 5 seconds were.
+
 ## Safety measures
 
 - The plugin compares the 21 instructions of the 4.92 send wrapper with the
@@ -73,7 +107,10 @@ Results (captures 0003 and 0004):
 - It changes one instruction in VSH (a branch at `0x005DED54`) and
   restores it if the plugin is stopped.
 - The hook calls no functions. Its only system call is the original
-  syscall 369.
+  syscall 369. The pop-up is shown from the plugin's own thread, never
+  from inside the hook.
 - At boot it waits 5 seconds before installing, and afterwards only checks
-  its own counter once a second, to log corrections.
+  its own counters every 100 ms, to log corrections and mode changes.
 - `/dev_hdd0/tmp/disc_rgb_fix.disable` turns it off at the next boot.
+- `/dev_hdd0/tmp/disc_rgb_fix.nopopup` turns the pop-ups off at the next
+  boot and keeps the RGB correction.

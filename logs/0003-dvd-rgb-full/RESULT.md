@@ -16,3 +16,6 @@ Trace:
   sent in about 28 minutes of playback, including opening the overlay.
 - Exit at about 1762 s (#855) sent the normal XMB RGB batch, uncorrected,
   with every reply status 0.
+
+`sends.bin` holds the send records of the capture, for
+`disc_rgb_fix/tools/verify_disc_rgb_fix.py`.

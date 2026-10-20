@@ -17,7 +17,9 @@ CFLAGS += -I$(CELL_TARGET_PATH)/include
 
 LDFLAGS := -mprx-with-runtime
 LDFLAGS += -L$(CELL_TARGET_PATH)/lib
-LDLIBS := -lfs_stub -llv2_stub -lc
+# lib/libvshtask_export_stub.a is webMAN MOD's lib/ file; build-docker.sh fetches it.
+LDFLAGS += -Llib
+LDLIBS := -lfs_stub -llv2_stub -lvshtask_export_stub -lc
 
 .PHONY: all clean disasm
 

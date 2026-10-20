@@ -6,6 +6,8 @@ fresh_492_analysis/
 *.o
 *.prx
 *.sprx
+# Import stubs (build-docker.sh downloads webMAN MOD's).
+*.a
 build/
 __pycache__/
 .DS_Store

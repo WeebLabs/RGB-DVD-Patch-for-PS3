@@ -1,0 +1,44 @@
+disc_rgb_fix 2.1.1 starting
+CHECK: disable marker absent
+WAIT: letting the XMB finish starting
+INFO: observer 0x00DC0480
+INFO: send hook 0x00B519DC
+STEP: checking 4.92 VSH send wrapper bytes
+CHECK: send wrapper matches
+STEP: writing observer address into hook code
+CHECK: hook code prepared
+STEP: writing send branch 0x48572C88
+READY: DVD-start AV MULTI batch will be kept RGB
+READY: output-mode changes are reported
+REWRITE: DVD-start batch kept RGB; total 0x00000001
+REWRITE: send result (0x74 = accepted) 0x00000074
+MODE: 480i RGB; video_vid 0x10 port 0x10 av_vid 0x0 cs_out 0x0 total 0x1
+POPUP: 480i RGB; vshtask_notify returned 0x0
+REWRITE: DVD-start batch kept RGB; total 0x00000002
+REWRITE: send result (0x74 = accepted) 0x00000074
+MODE: 576i RGB; video_vid 0x3 port 0x10 av_vid 0x5 cs_out 0x0 total 0x2
+POPUP: 576i RGB; vshtask_notify returned 0x0
+MODE: 480i RGB; video_vid 0x10 port 0x10 av_vid 0x0 cs_out 0x0 total 0x3
+POPUP: 480i RGB; vshtask_notify returned 0x0
+REWRITE: DVD-start batch kept RGB; total 0x00000003
+REWRITE: send result (0x74 = accepted) 0x00000074
+MODE: 480i RGB; video_vid 0x10 port 0x10 av_vid 0x0 cs_out 0x0 total 0x4
+POPUP: 480i RGB; vshtask_notify returned 0x0
+REWRITE: DVD-start batch kept RGB; total 0x00000004
+REWRITE: send result (0x74 = accepted) 0x00000074
+MODE: 576i RGB; video_vid 0x3 port 0x10 av_vid 0x5 cs_out 0x0 total 0x5
+POPUP: 576i RGB; vshtask_notify returned 0x0
+MODE: 480i RGB; video_vid 0x10 port 0x10 av_vid 0x0 cs_out 0x0 total 0x6
+POPUP: 480i RGB; vshtask_notify returned 0x0
+disc_rgb_fix 2.1.1 starting
+CHECK: disable marker absent
+WAIT: letting the XMB finish starting
+INFO: observer 0x00B30480
+INFO: send hook 0x00B219DC
+STEP: checking 4.92 VSH send wrapper bytes
+CHECK: send wrapper matches
+STEP: writing observer address into hook code
+CHECK: hook code prepared
+STEP: writing send branch 0x48542C88
+READY: DVD-start AV MULTI batch will be kept RGB
+READY: output-mode changes are reported
